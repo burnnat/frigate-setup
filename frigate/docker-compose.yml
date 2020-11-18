@@ -1,0 +1,35 @@
+version: "3.8"
+services:
+  rtsp:
+    container_name: rtsp
+    restart: unless-stopped
+    build: v4l2rtspserver
+    devices:
+      - /dev/video0
+    ports:
+      - "8554:8554"
+    command: "-H 972 -W 1296 -F 5"
+  frigate:
+    container_name: frigate
+    restart: unless-stopped
+    privileged: true
+    image: blakeblackshear/frigate:stable-aarch64
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - /etc/localtime:/etc/localtime:ro
+      - /home/pi/clips:/clips      
+      - ./config:/config
+      - type: tmpfs
+        target: /cache
+        tmpfs:
+          size: 100000000
+    ports:
+      - "5000:5000"
+    environment:
+      FRIGATE_MQTT_PASSWORD: "${MQTT_PASSWORD}"
+    healthcheck:
+      test: ["CMD", "wget" , "-q", "-O-", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 3m
